@@ -4,10 +4,14 @@ const client = new Discord.Client()
 const config = require('./config.json')
 const command = require('./command')
 const privateMessage = require('./private-message')
+const firstMessage = require ('./first-message')
+const roleClaim = require ('./role-claim')
 
-client.on('ready', () =>{
+
+client.on('ready', async () =>{
     console.log('Milton is ready to go!')
-    client.user.setActivity('Minecraft', { type: 'PLAYING' })
+    const serverCount = await client.guilds.cache.size
+    client.user.setActivity(`!!Help | discord.io/MiltonsDen` , { type: 'WATCHING' })
 
     // simple ping test (returns latency "ping")
     command(client, ['ping', 'test'], (message) => {
@@ -109,7 +113,8 @@ client.on('ready', () =>{
         message.channel.send(embed)
     })
 
-    command(client, 'serverinfo', message => {
+    // server info embedded message
+    command(client, 'serverinfo', (message) => {
         const { guild } = message
         
         const { name, region, memberCount, afkTimeout, defaultMessageNotifications, 
@@ -155,6 +160,40 @@ client.on('ready', () =>{
 
         message.channel.send(embed)
     })
+
+    // server info embedded message
+    command(client, 'help', (message) => {
+        
+        const embed = new Discord.MessageEmbed()
+        .setTitle(`Supported Milton Commands`)
+        .setColor('#00AAFF')
+        .addFields({
+            name: '__Utility__',
+            value: `
+            **!!clearchannel** - Clears all messages in a channel
+            X Under Construction X
+            `,
+        },{
+            name: '__Fun__',
+            value: `
+            X Under Construction X
+            `,
+        },{
+            name: '__Misc__',
+            value: `
+            **!!help** - Shows the help menu
+            **!!ping** - Shows latency
+            **!!invite** - Sends a server invite to SpookyGoose
+            **!!createtext** - Creates new text channel (Disabled)
+            **!!createvoice** - Creates new voice channel (Disabled)
+            X Under Construction X
+            `,
+        },)
+
+        message.channel.send(embed)
+    })
+
+    roleClaim(client)
 })
 
 client.login(config.token)
