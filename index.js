@@ -6,12 +6,25 @@ const command = require('./command')
 const privateMessage = require('./private-message')
 const firstMessage = require ('./first-message')
 const roleClaim = require ('./role-claim')
+const memberCount = require ('./member-count')
+const mongo = require('./mongo')
+const welcome = require('./welcome')
 
 
 client.on('ready', async () =>{
     console.log('Milton is ready to go!')
     const serverCount = await client.guilds.cache.size
-    client.user.setActivity(`!!Help | discord.io/MiltonsDen` , { type: 'WATCHING' })
+    require('events').EventEmitter.defaultMaxListeners = 15;
+    client.user.setActivity(`${client.guilds.cache.size} Servers | !!Help` , { type: 'WATCHING' })
+
+    // close pending mongoose connections
+    await mongo().then(mongoose => {
+        try {
+            console.log('Connected to mongo')
+        } finally {
+            mongoose.connection.close()
+        }
+    })
 
     // simple ping test (returns latency "ping")
     command(client, ['ping', 'test'], (message) => {
@@ -192,9 +205,61 @@ client.on('ready', async () =>{
 
         message.channel.send(embed)
     })
+    
+    // simple ban command
+    command(client, 'ban', message => {
+        const { member, mentions } = message
+        
+        const tag = `<@${member.id}>`
 
-    roleClaim(client)
+        if (
+        member.hasPermission('ADMINISTRATOR') ||
+        member.hasPermission('BAN_MEMBERS')
+        ) {
+            const target = mentions.users.first()
+            if (target) {
+                const targetMember = message.guild.members.cache.get(target.id)
+                targetMember.ban()
+                message.channel.send(`${tag}: The user ${targetMember}, has been banned.`)
+            } else {
+                message.channel.send(`${tag}: Please specify user to ban.`)
+            }
+        } else {
+            message.channel.send(`${tag}: You do not have permission to use this command...\nRequired: [ADMINISTRATOR] or [BAN_MEMBERS] Missing: [ADMINISTRATOR] or [BAN_MEMBERS]`)
+        }
+    })
+
+    // simple kick command
+    command(client, 'kick', message => {
+        const { member, mentions } = message
+    
+        const tag = `<@${member.id}>`
+
+        if (
+        member.hasPermission('ADMINISTRATOR') ||
+        member.hasPermission('KICK_MEMBERS')
+        ) {
+            const target = mentions.users.first()
+            if (target) {
+                const targetMember = message.guild.members.cache.get(target.id)
+                targetMember.kick()
+                message.channel.send(`${tag}: The user ${targetMember}, has been kicked.`)
+            } else {
+                message.channel.send(`${tag}: Please specify user to kick.`)
+            }
+        } else {
+            message.channel.send(`${tag}: You do not have permission to use this command...\nRequired: [ADMINISTRATOR] or [KICK_MEMBERS] Missing: [ADMINISTRATOR] or [KICK_MEMBERS]`)
+        }
+    })
+
+    // member count channel
+    memberCount(client)
+
+    // per server welcome
+    welcome(client)
 })
+
+
 
 client.login(config.token)
 // for heroku: process.env.BOT_TOKEN 
